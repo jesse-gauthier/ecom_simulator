@@ -189,12 +189,6 @@ const createDocumentData = (etf, currentDate) => {
     etf_name: etf.name,
     category: etf.type || 'ETF',
     last_updated: currentDate,
-    price: parseFloat(etf.price) || 0,
-    change_amount: parseFloat(etf.change_amount) || 0,
-    change_percentage: parseFloat(etf.change_percentage?.replace('%', '')) || 0,
-    volume: parseInt(etf.volume?.replace(/,/g, ''), 10) || 0,
-    latest_trading_day: etf.latest_trading_day || currentDate.split('T')[0],
-    raw_data: etf.raw_data || JSON.stringify(etf), // Store raw data for reference
   };
 };
 
