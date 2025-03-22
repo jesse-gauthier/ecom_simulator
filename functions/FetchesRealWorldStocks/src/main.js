@@ -192,9 +192,7 @@ const createDocumentData = (etf, currentDate) => {
     price: etf.price,
     change_amount: etf.change_amount,
     change_percentage: etf.change_percentage,
-    volume: etf.volume,
-    latest_trading_day: etf.latest_trading_day,
-    raw_data: etf.raw_data
+    raw_data: [etf.raw_data] // Convert to array of strings as per schema
   };
 };
 
