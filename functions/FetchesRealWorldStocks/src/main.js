@@ -253,6 +253,29 @@ const processETF = async (databases, etf, currentDate, results, log) => {
 };
 
 const createDocumentData = (etf, currentDate) => {
+  // Create a simplified version of the raw data to store
+  const essentialData = {
+    symbol: etf.ticker,
+    price: etf.price,
+    change: etf.change_amount,
+    percent: etf.change_percentage,
+    date: etf.latest_trading_day || currentDate.split('T')[0]
+  };
+  
+  // Convert to JSON and ensure it's not too long
+  const jsonData = JSON.stringify(essentialData);
+  
+  // Split long strings into chunks of max 190 chars (leaving room for chunk numbers)
+  const rawDataChunks = [];
+  if (jsonData.length <= 190) {
+    rawDataChunks.push(jsonData);
+  } else {
+    // Split into chunks of 190 chars max
+    for (let i = 0; i < jsonData.length; i += 190) {
+      rawDataChunks.push(jsonData.substring(i, i + 190));
+    }
+  }
+  
   return {
     ticker_symbol: etf.ticker,
     etf_name: etf.name,
@@ -261,7 +284,7 @@ const createDocumentData = (etf, currentDate) => {
     price: etf.price,
     change_amount: etf.change_amount,
     change_percentage: etf.change_percentage,
-    raw_data: [etf.raw_data] // Convert to array of strings as per schema
+    raw_data: rawDataChunks  // Array of strings, each ≤ 200 chars
   };
 };
 
