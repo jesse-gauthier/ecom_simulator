@@ -108,9 +108,6 @@ const fetchETFData = async (log) => {
   const url = new URL(CONFIG.ALPHA_VANTAGE.BASE_URL);
   url.searchParams.append('function', 'TOP_GAINERS_LOSERS');
   url.searchParams.append('apikey', CONFIG.ALPHA_VANTAGE.API_KEY);
-  
-  // ... implementation details
-  
   return data.most_actively_traded.filter(item => item.type === 'ETF');
 };
 ```

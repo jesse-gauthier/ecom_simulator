@@ -74,68 +74,69 @@ const processETFs = async (databases, etfs, log) => {
   const currentDate = new Date().toISOString();
   const results = { created: 0, updated: 0, failed: 0 };
   const batchSize = 10; // Process in batches of 10
-  
+
   for (let i = 0; i < etfs.length; i += batchSize) {
     const batch = etfs.slice(i, i + batchSize);
-    
-    // Process batch in parallel
-    await Promise.all(batch.map(async (etf) => {
-      try {
-        // Create document data with proper parsing
-        const documentData = {
-          ticker_symbol: etf.ticker,
-          etf_name: etf.name,
-          category: etf.type || 'ETF',
-          last_updated: currentDate,
-          price: parseFloat(etf.price) || 0,
-          change_amount: parseFloat(etf.change_amount) || 0,
-          change_percentage: parseFloat(etf.change_percentage?.replace('%', '')) || 0,
-          volume: parseInt(etf.volume?.replace(/,/g, ''), 10) || 0,
-          raw_data: JSON.stringify(etf), // Store raw data for reference
-        };
-        
-        // Check if ETF already exists
-        const existingDocs = await databases.listDocuments(
-          CONFIG.DATABASE.ID,
-          CONFIG.DATABASE.COLLECTION_ID,
-          [Query.equal('ticker_symbol', etf.ticker)]
-        );
-        
-        if (existingDocs.documents.length > 0) {
-          // Update existing document
-          const docId = existingDocs.documents[0].$id;
-          await databases.updateDocument(
-            CONFIG.DATABASE.ID,
-            CONFIG.DATABASE.COLLECTION_ID,
-            docId,
-            documentData
-          );
-          log(`[INFO] Updated ETF: ${etf.ticker}`);
-          results.updated++;
-        } else {
-          // Create new document
-          await databases.createDocument(
-            CONFIG.DATABASE.ID,
-            CONFIG.DATABASE.COLLECTION_ID,
-            ID.unique(),
-            documentData
-          );
-          log(`[INFO] Created new ETF: ${etf.ticker}`);
-          results.created++;
-        }
-      } catch (error) {
-        log(`[ERROR] Failed to process ETF ${etf.ticker}: ${error.message}`);
-        results.failed++;
-      }
-    }));
-    
-    // Small delay between batches to prevent overwhelming the database
+    await processBatch(databases, batch, currentDate, results, log);
     if (i + batchSize < etfs.length) {
       await sleep(100);
     }
   }
-  
+
   return results;
+};
+
+const processBatch = async (databases, batch, currentDate, results, log) => {
+  await Promise.all(batch.map(etf => processETF(databases, etf, currentDate, results, log)));
+};
+
+const processETF = async (databases, etf, currentDate, results, log) => {
+  try {
+    const documentData = createDocumentData(etf, currentDate);
+    const existingDocs = await databases.listDocuments(
+      CONFIG.DATABASE.ID,
+      CONFIG.DATABASE.COLLECTION_ID,
+      [Query.equal('ticker_symbol', etf.ticker)]
+    );
+
+    if (existingDocs.documents.length > 0) {
+      const docId = existingDocs.documents[0].$id;
+      await databases.updateDocument(
+        CONFIG.DATABASE.ID,
+        CONFIG.DATABASE.COLLECTION_ID,
+        docId,
+        documentData
+      );
+      log(`[INFO] Updated ETF: ${etf.ticker}`);
+      results.updated++;
+    } else {
+      await databases.createDocument(
+        CONFIG.DATABASE.ID,
+        CONFIG.DATABASE.COLLECTION_ID,
+        ID.unique(),
+        documentData
+      );
+      log(`[INFO] Created new ETF: ${etf.ticker}`);
+      results.created++;
+    }
+  } catch (error) {
+    log(`[ERROR] Failed to process ETF ${etf.ticker}: ${error.message}`);
+    results.failed++;
+  }
+};
+
+const createDocumentData = (etf, currentDate) => {
+  return {
+    ticker_symbol: etf.ticker,
+    etf_name: etf.name,
+    category: etf.type || 'ETF',
+    last_updated: currentDate,
+    price: parseFloat(etf.price) || 0,
+    change_amount: parseFloat(etf.change_amount) || 0,
+    change_percentage: parseFloat(etf.change_percentage?.replace('%', '')) || 0,
+    volume: parseInt(etf.volume?.replace(/,/g, ''), 10) || 0,
+    raw_data: JSON.stringify(etf), // Store raw data for reference
+  };
 };
 
 // Main function
