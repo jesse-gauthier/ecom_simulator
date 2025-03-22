@@ -189,6 +189,12 @@ const createDocumentData = (etf, currentDate) => {
     etf_name: etf.name,
     category: etf.type || 'ETF',
     last_updated: currentDate,
+    price: etf.price,
+    change_amount: etf.change_amount,
+    change_percentage: etf.change_percentage,
+    volume: etf.volume,
+    latest_trading_day: etf.latest_trading_day,
+    raw_data: etf.raw_data
   };
 };
 
