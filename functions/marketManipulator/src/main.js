@@ -1,5 +1,5 @@
-import { Client, databases } from 'node-appwrite';
-
+import pkg from 'node-appwrite';
+const { Client, databases } = pkg;
 /**
  * Main function that orchestrates the market manipulation process.
  * This function:
