@@ -117,7 +117,7 @@ async function fetchesRealWorldStockMarket(config) {
     );
     return realWorldStockMarket;
   } catch (error) {
-    log(`Error fetching real world stock market database: ${error}`)
+    console.log(`Error fetching real world stock market database: ${error}`)
   }
 }
 
@@ -186,7 +186,7 @@ async function updatesManipulatorCollection(marketManipulator) {
           UpdateTime: updateTime
         }
       );
-      log(`Manipulator document updated with value: ${manipulatorValue}`);
+      console.log(`Manipulator document updated with value: ${manipulatorValue}`);
     } else {
       // Create new document if none exists
       await databases.createDocument(
@@ -198,12 +198,12 @@ async function updatesManipulatorCollection(marketManipulator) {
           UpdateTime: updateTime
         }
       );
-      log(`New manipulator document created with value: ${manipulatorValue}`);
+      console.log(`New manipulator document created with value: ${manipulatorValue}`);
     }
     
     return true;
   } catch (error) {
-    log(`Error updating manipulator collection: ${error.message}`);
+    console.log(`Error updating manipulator collection: ${error.message}`);
     return false;
   }
 }
