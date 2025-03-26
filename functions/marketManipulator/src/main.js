@@ -1,5 +1,5 @@
 import pkg from 'node-appwrite';
-const { Client, databases } = pkg;
+const { Client, Databases } = pkg;
 /**
  * Main function that orchestrates the market manipulation process.
  * This function:
@@ -21,9 +21,11 @@ export default async ({ req, res, log, error }) => {
     .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(req.headers['x-appwrite-key'] ?? '');
+  
+  // Initialize the database with the configured client
+  const databases = new Databases(client);
  
- 
-    const config = {
+  const config = {
     setup: {
       "databaseId": process.env.APPWRITE_FUNCTION_DATABASE_ID,
       "realWorldCollection": process.env.APPWRITE_FUNCTION_REALWORLD_COLLECTION_ID,
@@ -33,7 +35,7 @@ export default async ({ req, res, log, error }) => {
   }
 
   // Step 1: Fetch the real world stock market database
-  const realWorldStockMarket = await fetchesRealWorldStockMarket(config.setup);
+  const realWorldStockMarket = await fetchesRealWorldStockMarket(databases, config.setup);
   const averageChange = []
 
   // Step 2: Process the real world stock market database
@@ -50,9 +52,13 @@ export default async ({ req, res, log, error }) => {
   const marketManipulator = marketManipulatorCalculator(average)
   // Step 5: Update the manipulator collection
 
-
-  await updatesManipulatorCollection(marketManipulator)
-
+  await updatesManipulatorCollection(databases, config.setup, marketManipulator);
+  
+  // Return success response
+  return res.json({
+    success: true,
+    marketManipulator: marketManipulator
+  });
 };
 
 /**
@@ -109,15 +115,16 @@ function marketManipulatorCalculator(averageChange) {
  * @param {string} config.realWorldCollection - The ID of the collection containing real world market data
  * @returns {Promise<Array>} - Array of stock market symbols with their data
  */
-async function fetchesRealWorldStockMarket(config) {
+async function fetchesRealWorldStockMarket(databases, config) {
   try {
-    const realWorldStockMarket = await databases.listDocuments(
+    const response = await databases.listDocuments(
       config.databaseId,
       config.realWorldCollection
     );
-    return realWorldStockMarket;
+    return response.documents;
   } catch (error) {
-    console.log(`Error fetching real world stock market database: ${error}`)
+    console.log(`Error fetching real world stock market database: ${error}`);
+    return [];
   }
 }
 
@@ -161,7 +168,7 @@ function calculatesAverage(symbols) {
  * @param {number} marketManipulator - The calculated market manipulator value
  * @returns {Promise<boolean>} - True if the update was successful, false otherwise
  */
-async function updatesManipulatorCollection(marketManipulator) {
+async function updatesManipulatorCollection(databases, config, marketManipulator) {
   try {
     // Format the manipulator as a string
     const manipulatorValue = marketManipulator.toString();
@@ -170,16 +177,16 @@ async function updatesManipulatorCollection(marketManipulator) {
     
     // Query to check if a document already exists
     const existingDocuments = await databases.listDocuments(
-      config.setup.databaseId,
-      config.setup.manipulatorCollection
+      config.databaseId,
+      config.manipulatorCollection
     );
     
     if (existingDocuments.documents.length > 0) {
       // Update existing document
       const docId = existingDocuments.documents[0].$id;
       await databases.updateDocument(
-        config.setup.databaseId,
-        config.setup.manipulatorCollection,
+        config.databaseId,
+        config.manipulatorCollection,
         docId,
         {
           manipulator: manipulatorValue,
@@ -190,8 +197,8 @@ async function updatesManipulatorCollection(marketManipulator) {
     } else {
       // Create new document if none exists
       await databases.createDocument(
-        config.setup.databaseId,
-        config.setup.manipulatorCollection,
+        config.databaseId,
+        config.manipulatorCollection,
         'unique()',
         {
           manipulator: manipulatorValue,
