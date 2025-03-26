@@ -105,7 +105,7 @@ function calculatesAverage (symbols) {
 
 }
 
-function updatesManipulatorCollection {
+function updatesManipulatorCollection() {
   // This function will accept the modifier as a parameter and update the manipulator collection
   // with the new value
 
