@@ -12,11 +12,10 @@ const { Client, Databases } = pkg;
  * 
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
- * @param {Function} log - Function for logging messages
- * @param {Function} error - Function for logging errors
+ * @param {Object} context - Function context with logging methods
  * @returns {Promise<void>}
  */
-export default async ({ req, res, log, error }) => {
+export default async ({ req, res, context }) => {
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
@@ -35,7 +34,7 @@ export default async ({ req, res, log, error }) => {
   }
 
   // Step 1: Fetch the real world stock market database
-  const realWorldStockMarket = await fetchesRealWorldStockMarket(databases, config.setup);
+  const realWorldStockMarket = await fetchesRealWorldStockMarket(databases, config.setup, context);
   const averageChange = []
 
   // Step 2: Process the real world stock market database
@@ -52,7 +51,7 @@ export default async ({ req, res, log, error }) => {
   const marketManipulator = marketManipulatorCalculator(average)
   // Step 5: Update the manipulator collection
 
-  await updatesManipulatorCollection(databases, config.setup, marketManipulator);
+  await updatesManipulatorCollection(databases, config.setup, marketManipulator, context);
   
   // Return success response
   return res.json({
@@ -110,20 +109,20 @@ function marketManipulatorCalculator(averageChange) {
  * Fetches all documents from the real world stock market collection.
  * Retrieves current market data that will be used to calculate the market manipulator.
  * 
+ * @param {Object} databases - The Appwrite Databases instance
  * @param {Object} config - Configuration object containing database and collection IDs
- * @param {string} config.databaseId - The ID of the database
- * @param {string} config.realWorldCollection - The ID of the collection containing real world market data
+ * @param {Object} context - Function context with logging methods
  * @returns {Promise<Array>} - Array of stock market symbols with their data
  */
-async function fetchesRealWorldStockMarket(databases, config) {
+async function fetchesRealWorldStockMarket(databases, config, context) {
   try {
     const response = await databases.listDocuments(
       config.databaseId,
       config.realWorldCollection
     );
     return response.documents;
-  } catch (error) {
-    console.log(`Error fetching real world stock market database: ${error}`);
+  } catch (err) {
+    context.error(`Error fetching real world stock market database: ${err}`);
     return [];
   }
 }
@@ -165,10 +164,13 @@ function calculatesAverage(symbols) {
  * If a document already exists, it updates it; otherwise, it creates a new one.
  * Also records the timestamp of the update.
  * 
+ * @param {Object} databases - The Appwrite Databases instance
+ * @param {Object} config - Configuration object containing database and collection IDs
  * @param {number} marketManipulator - The calculated market manipulator value
+ * @param {Object} context - Function context with logging methods
  * @returns {Promise<boolean>} - True if the update was successful, false otherwise
  */
-async function updatesManipulatorCollection(databases, config, marketManipulator) {
+async function updatesManipulatorCollection(databases, config, marketManipulator, context) {
   try {
     // Format the manipulator as a string
     const manipulatorValue = marketManipulator.toString();
@@ -193,7 +195,7 @@ async function updatesManipulatorCollection(databases, config, marketManipulator
           UpdateTime: updateTime
         }
       );
-      console.log(`Manipulator document updated with value: ${manipulatorValue}`);
+      context.log(`Manipulator document updated with value: ${manipulatorValue}`);
     } else {
       // Create new document if none exists
       await databases.createDocument(
@@ -205,12 +207,12 @@ async function updatesManipulatorCollection(databases, config, marketManipulator
           UpdateTime: updateTime
         }
       );
-      console.log(`New manipulator document created with value: ${manipulatorValue}`);
+      context.log(`New manipulator document created with value: ${manipulatorValue}`);
     }
     
     return true;
-  } catch (error) {
-    console.log(`Error updating manipulator collection: ${error.message}`);
+  } catch (err) {
+    context.error(`Error updating manipulator collection: ${err.message}`);
     return false;
   }
 }
