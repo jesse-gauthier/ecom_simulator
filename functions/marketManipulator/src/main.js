@@ -56,7 +56,13 @@ export default async ({ req, res, context }) => {
       marketManipulator: marketManipulator
     });
   } catch (error) {
-    context.error(`Market manipulation process failed: ${error.message}`);
+    // Check if context exists before calling error method
+    if (context && typeof context.error === 'function') {
+      context.error(`Market manipulation process failed: ${error.message}`);
+    } else {
+      console.error(`Market manipulation process failed: ${error.message}`);
+    }
+    
     return res.json({
       success: false,
       error: error.message
@@ -119,7 +125,11 @@ async function fetchRealWorldStockMarket(databases, config, context) {
     );
     return response.documents;
   } catch (err) {
-    context.error(`Error fetching real world stock market database: ${err}`);
+    if (context && typeof context.error === 'function') {
+      context.error(`Error fetching real world stock market database: ${err}`);
+    } else {
+      console.error(`Error fetching real world stock market database: ${err}`);
+    }
     return [];
   }
 }
@@ -144,12 +154,20 @@ function calculateAverageChange(symbols, context) {
       totalChange += change;
       validSymbols++;
     } else {
-      context.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
+      if (context && typeof context.warn === 'function') {
+        context.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
+      } else {
+        console.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
+      }
     }
   }
   
   if (validSymbols === 0) {
-    context.error("No valid symbols found for calculation");
+    if (context && typeof context.error === 'function') {
+      context.error("No valid symbols found for calculation");
+    } else {
+      console.error("No valid symbols found for calculation");
+    }
     return 0;
   }
   
@@ -191,7 +209,11 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
           updateTime: updateTime
         }
       );
-      context.log(`Manipulator document updated with value: ${manipulatorValue}`);
+      if (context && typeof context.log === 'function') {
+        context.log(`Manipulator document updated with value: ${manipulatorValue}`);
+      } else {
+        console.log(`Manipulator document updated with value: ${manipulatorValue}`);
+      }
     } else {
       // Create new document if none exists
       await databases.createDocument(
@@ -203,12 +225,20 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
           updateTime: updateTime
         }
       );
-      context.log(`New manipulator document created with value: ${manipulatorValue}`);
+      if (context && typeof context.log === 'function') {
+        context.log(`New manipulator document created with value: ${manipulatorValue}`);
+      } else {
+        console.log(`New manipulator document created with value: ${manipulatorValue}`);
+      }
     }
     
     return true;
   } catch (err) {
-    context.error(`Error updating manipulator collection: ${err.message}`);
+    if (context && typeof context.error === 'function') {
+      context.error(`Error updating manipulator collection: ${err.message}`);
+    } else {
+      console.error(`Error updating manipulator collection: ${err.message}`);
+    }
     throw err; // Propagate the error to be handled by the main function
   }
 }
