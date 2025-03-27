@@ -73,7 +73,7 @@ export default async ({ req, res, context }) => {
  */
 function marketManipulatorCalculator(averageChange) {
   // Minimum manipulator value to reflect that markets always change
-  const minManipulator = 5; 
+  const minManipulator = 0.1; // Reduced from 5 to 0.1
   let manipulator = 0;
   
   // Convert averageChange to absolute value
@@ -84,20 +84,23 @@ function marketManipulatorCalculator(averageChange) {
   const highThreshold = 5;    // 5% is considered significant
   const extremeThreshold = 10; // 10% is considered extreme
   
-  // Calculate the market manipulation percentage
+  // Calculate the market manipulation percentage with reduced scaling
   if (absChange <= normalThreshold) {
-    // Within normal range - scale from minimum to 20%
-    manipulator = minManipulator + ((absChange / normalThreshold) * (20 - minManipulator));
+    // Within normal range - scale from minimum to 1.5%
+    manipulator = minManipulator + ((absChange / normalThreshold) * (1.5 - minManipulator));
   } else if (absChange <= highThreshold) {
-    // Above normal but below high threshold - scale from 20% to 60%
-    manipulator = 20 + ((absChange - normalThreshold) / (highThreshold - normalThreshold)) * 40;
+    // Above normal but below high threshold - scale from 1.5% to 3%
+    manipulator = 1.5 + ((absChange - normalThreshold) / (highThreshold - normalThreshold)) * 1.5;
   } else if (absChange <= extremeThreshold) {
-    // Between high and extreme threshold - scale from 60% to 100%
-    manipulator = 60 + ((absChange - highThreshold) / (extremeThreshold - highThreshold)) * 40;
+    // Between high and extreme threshold - scale from 3% to 5%
+    manipulator = 3 + ((absChange - highThreshold) / (extremeThreshold - highThreshold)) * 2;
   } else {
-    // Above extreme threshold
-    manipulator = 100;
+    // Above extreme threshold - capped at 5% instead of 100%
+    manipulator = 5;
   }
+  
+  return manipulator;
+}
   
   // Round to 2 decimal places
   manipulator = Math.round(manipulator * 100) / 100;
