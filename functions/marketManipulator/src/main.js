@@ -10,6 +10,10 @@ const { Client, Databases } = pkg;
  * 4. Determines the market manipulation factor
  * 5. Updates the database with the new manipulator value
  * 
+ * Database structure: 
+ * manipulator: String
+ * UpdateTime: datetime
+ * 
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
  * @param {Object} context - Function context with logging methods
@@ -147,12 +151,27 @@ function calculateAverageChange(symbols, context) {
   let validSymbols = 0;
   
   for (const symbol of symbols) {
-    // Validate the data
-    if (symbol && typeof symbol.price === 'number' && typeof symbol.change_amount === 'number') {
-      // Extract and calculate price change
-      const change = symbol.price * symbol.change_amount;
-      totalChange += change;
-      validSymbols++;
+    // Validate the data - checking for the correct field names in the ETF data
+    if (symbol && typeof symbol.price === 'string' && typeof symbol.change_percentage === 'string') {
+      try {
+        // Convert string values to numbers and handle percentage format
+        const price = parseFloat(symbol.price);
+        // Extract numeric value from percentage string (e.g., "-1.9929%" → -1.9929)
+        const changePercentage = parseFloat(symbol.change_percentage.replace('%', ''));
+        
+        if (!isNaN(price) && !isNaN(changePercentage)) {
+          totalChange += changePercentage;
+          validSymbols++;
+        } else {
+          throw new Error("Invalid numeric conversion");
+        }
+      } catch (err) {
+        if (context && typeof context.warn === 'function') {
+          context.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
+        } else {
+          console.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
+        }
+      }
     } else {
       if (context && typeof context.warn === 'function') {
         context.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
@@ -189,7 +208,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
     // Format the manipulator as a number with 2 decimal precision
     const manipulatorValue = Number(marketManipulator.toFixed(2));
     // Get current date and time
-    const updateTime = new Date().toISOString();
+    const timestamp = new Date().toISOString();
     
     // Query to check if a document already exists
     const existingDocuments = await databases.listDocuments(
@@ -206,7 +225,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         docId,
         {
           manipulator: manipulatorValue,
-          updateTime: updateTime
+          UpdateTime: timestamp  
         }
       );
       if (context && typeof context.log === 'function') {
@@ -222,7 +241,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         'unique()',
         {
           manipulator: manipulatorValue,
-          updateTime: updateTime
+          last_updated: timestamp  // Using last_updated instead of updateTime
         }
       );
       if (context && typeof context.log === 'function') {
@@ -239,6 +258,6 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
     } else {
       console.error(`Error updating manipulator collection: ${err.message}`);
     }
-    throw err; // Propagate the error to be handled by the main function
+    throw err; 
   }
 }
