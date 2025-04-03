@@ -70,12 +70,13 @@ export default async ({ req, res, log, error }) => {
     { ticker_symbol: "WLMTY", stock_name: "Walmart Titan Retail", category: "Retail", price: "142.35" }
   ];
 
-  await addInGameStocks(inGameStocks, config)
+  await addInGameStocks(inGameStocks, config, client)
 };
 
+// This function will be used to create the in game stock market into the database, will be retired after the first run
+// will replace with a function that allows adding new stocks, without duplicating.
 
-
-async function addInGameStocks(inGameStocks, config) {
+async function addInGameStocks(inGameStocks, config, client) {
 
   const databases = new Databases(client);
   const collectionId = config.database.inGameMarketCollection;
