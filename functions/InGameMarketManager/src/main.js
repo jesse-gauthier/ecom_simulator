@@ -68,14 +68,6 @@ export default async ({ req, res, context }) => {
     { ticker_symbol: "WLMTY", stock_name: "Walmart Titan Retail", category: "Retail", price: "142.35" }
   ];
 
-
-
-  try {
-    await addInGameStocks(inGameStocks, config, client, context);
-  } catch (err) {
-    console.log('Error adding in-game stocks:', err.message);
-  }
-
   // TODO: Make this return meaningful data, like the stocks that were added or something similar
   // For now, we'll just return an empty response
   return res.json({});
