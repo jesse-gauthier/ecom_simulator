@@ -1,10 +1,8 @@
 import pkg from 'node-appwrite';
 
 const { Client, Databases, ID } = pkg;
-// This Appwrite function will be executed every time your function is triggered
+
 export default async ({ req, res, context }) => {
-  // You can use the Appwrite SDK to interact with other services
-  // For this example, we're using the Users service
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
@@ -94,11 +92,11 @@ async function addInGameStocks(inGameStocks, config, client, context) {
 
   try {
     for (const stock of inGameStocks) {
-      await databases.createDocument(databaseId, collectionId, ID.unique(), { stock });
+      await databases.createDocument(databaseId, collectionId, ID.unique(), stock);
       context.log('stock added:', stock);
     }
     context.log('In-game stocks added successfully!');
   } catch (err) {
-    console.error('Error adding in-game stocks:', err.message);
+    context.error()('Error adding in-game stocks:', err.message);
   }
 }
