@@ -12,7 +12,7 @@ export default async ({ req, res, context }) => {
 
   const config = {
     database: {
-      inGameMarketCollection: process.env.INGAME_STOCK_COLLECTION_ID,
+      inGameMarketCollection: process.env.INGAME_STOCK_COLLECTION,
       inGameMarketDatabase: process.env.INGAME_STOCK_DATABASE_ID,
     }
   }
@@ -75,7 +75,7 @@ export default async ({ req, res, context }) => {
   try {
     await addInGameStocks(inGameStocks, config, client, context);
   } catch (err) {
-    console.error('Error adding in-game stocks:', err.message);
+    context.log('Error adding in-game stocks:', err.message);
   }
 
   // TODO: Make this return meaningful data, like the stocks that were added or something similar
