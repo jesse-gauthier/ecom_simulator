@@ -224,7 +224,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         config.manipulatorCollection,
         docId,
         {
-          manipulator: manipulatorValue,
+          manipulator: manipulatorValue.toString(),
           UpdateTime: timestamp  
         }
       );
