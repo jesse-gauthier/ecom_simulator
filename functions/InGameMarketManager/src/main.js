@@ -70,7 +70,13 @@ export default async ({ req, res, context }) => {
     { ticker_symbol: "WLMTY", stock_name: "Walmart Titan Retail", category: "Retail", price: "142.35" }
   ];
 
-  await addInGameStocks(inGameStocks, config, client, context);
+
+
+  try {
+    await addInGameStocks(inGameStocks, config, client, context);
+  } catch (err) {
+    context.error('Error adding in-game stocks:', err.message);
+  }
 };
 
 // This function will be used to create the in game stock market into the database, will be retired after the first run
@@ -89,7 +95,7 @@ async function addInGameStocks(inGameStocks, config, client, context) {
     }
     context.log('In-game stocks added successfully!');
   } catch (err) {
-    context.log('Error adding in-game stocks:', err.message);
+    context.error('Error adding in-game stocks:', err.message);
   }
   return res.json({ message: 'In-game stocks added successfully!' });
 }
