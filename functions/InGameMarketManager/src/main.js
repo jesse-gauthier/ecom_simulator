@@ -78,7 +78,9 @@ export default async ({ req, res, context }) => {
     console.error('Error adding in-game stocks:', err.message);
   }
 
-  return context.res.empty()
+  // TODO: Make this return meaningful data, like the stocks that were added or something similar
+  // For now, we'll just return an empty response
+  return res.json({});
 };
 
 // This function will be used to create the in game stock market into the database, will be retired after the first run
