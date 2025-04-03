@@ -2,7 +2,7 @@ import pkg from 'node-appwrite';
 
 const { Client, Databases, ID } = pkg;
 // This Appwrite function will be executed every time your function is triggered
-export default async ({ req, res, log, error, context }) => {
+export default async ({ req, res, context }) => {
   // You can use the Appwrite SDK to interact with other services
   // For this example, we're using the Users service
   const client = new Client()
@@ -12,8 +12,8 @@ export default async ({ req, res, log, error, context }) => {
 
   const config = {
     database: {
-      inGameMarketCollection: process.env.INGAME_STOCK_COLLECTION_ID,
-      inGameMarketDatabase: process.env.INGAME_STOCK_DATABASE_ID,
+      "inGameMarketCollection": process.env.INGAME_STOCK_COLLECTION_ID,
+      "inGameMarketDatabase": process.env.INGAME_STOCK_DATABASE_ID,
     }
   }
 
@@ -70,13 +70,13 @@ export default async ({ req, res, log, error, context }) => {
     { ticker_symbol: "WLMTY", stock_name: "Walmart Titan Retail", category: "Retail", price: "142.35" }
   ];
 
-  await addInGameStocks(inGameStocks, config, client, context, log, error);
+  await addInGameStocks(inGameStocks, config, client, context);
 };
 
 // This function will be used to create the in game stock market into the database, will be retired after the first run
 // will replace with a function that allows adding new stocks, without duplicating.
 
-async function addInGameStocks(inGameStocks, config, client, context, log, error) {
+async function addInGameStocks(inGameStocks, config, client, context) {
 
   const databases = new Databases(client);
   const collectionId = config.database.inGameMarketCollection;
