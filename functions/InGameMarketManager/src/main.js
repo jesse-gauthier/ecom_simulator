@@ -97,6 +97,6 @@ async function addInGameStocks(inGameStocks, config, client, context) {
     }
     context.log('In-game stocks added successfully!');
   } catch (err) {
-    context.error()('Error adding in-game stocks:', err.message);
+    context.error('Error adding in-game stocks:', err.message);
   }
 }
