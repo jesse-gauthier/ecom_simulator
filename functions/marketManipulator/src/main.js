@@ -39,52 +39,26 @@ export default async ({ req, res, context }) => {
     };
 
     // Step 1: Fetch the real world stock market database
-    try {
-      const realWorldStockMarket = await fetchRealWorldStockMarket(databases, config.setup, context);
-      if (!realWorldStockMarket.length) {
-        throw new Error("No stock market data available");
-      }
-    } catch (error) {
-      context.error(`Error fetching real world stock market data: ${error.message}`);
-      return res.json({
-        success: false,
-        error: `Error fetching real world stock market data: ${error.message}`
-      }, 500);
+    const realWorldStockMarket = await fetchRealWorldStockMarket(databases, config.setup, context);
+    if (!realWorldStockMarket.length) {
+      throw new Error("No stock market data available");
     }
-
 
     // Step 2: Calculate the average change directly from real world data
-
-    try {
-      const average = calculateAverageChange(realWorldStockMarket, context);
-    } catch (error) {
-      context.error(`Error calculating average change: ${error.message}`);
-      return res.json({
-        success: false,
-        error: `Error calculating average change: ${error.message}`
-      }, 500);
-    }
+    const average = calculateAverageChange(realWorldStockMarket, context);
 
     // Step 3: Configure the in-game market manipulation
-    try {
-      const marketManipulator = calculateMarketManipulator(average);
-    } catch (error) {
-      context.error(`Error calculating market manipulator: ${error.message}`);
-      return res.json({
-        success: false,
-        error: `Error calculating market manipulator: ${error.message}`
-      }, 500);
-    }
+    const marketManipulator = calculateMarketManipulator(average);
+
     // Step 4: Update the manipulator collection
-    try {
-      await updateManipulatorCollection(databases, config.setup, marketManipulator, context);
-    } catch (error) {
-      context.error(`Error updating manipulator collection: ${error.message}`);
-      return res.json({
-        success: false,
-        error: `Error updating manipulator collection: ${error.message}`
-      }, 500);
-    }
+    await updateManipulatorCollection(databases, config.setup, marketManipulator, context);
+
+    // Return success response
+    return res.json({
+      success: true,
+      manipulator: Number(marketManipulator.toFixed(2)),
+      average_change: Number(average.toFixed(2))
+    }, 200);
 
   } catch (error) {
     // Check if context exists before calling error method
@@ -161,7 +135,7 @@ async function fetchRealWorldStockMarket(databases, config, context) {
     } else {
       console.error(`Error fetching real world stock market database: ${err}`);
     }
-    return [];
+    throw err; // Re-throw to be caught by main try-catch
   }
 }
 
@@ -214,7 +188,7 @@ function calculateAverageChange(symbols, context) {
     } else {
       console.error("No valid symbols found for calculation");
     }
-    return 0;
+    throw new Error("No valid symbols found for calculation");
   }
 
   return totalChange / validSymbols;
@@ -258,7 +232,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
       if (context && typeof context.log === 'function') {
         context.log(`Manipulator document updated with value: ${manipulatorValue}`);
       } else {
-        context.log(`Manipulator document updated with value: ${manipulatorValue}`);
+        console.log(`Manipulator document updated with value: ${manipulatorValue}`);
       }
     } else {
       // Create new document if none exists
@@ -267,14 +241,14 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         config.manipulatorCollection,
         'unique()',
         {
-          manipulator: manipulatorValue,
-          last_updated: timestamp  // Using last_updated instead of updateTime
+          manipulator: manipulatorValue.toString(),
+          UpdateTime: timestamp  // Changed from last_updated to match documentation
         }
       );
       if (context && typeof context.log === 'function') {
         context.log(`New manipulator document created with value: ${manipulatorValue}`);
       } else {
-        context.log(`New manipulator document created with value: ${manipulatorValue}`);
+        console.log(`New manipulator document created with value: ${manipulatorValue}`);
       }
     }
 
@@ -283,7 +257,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
     if (context && typeof context.error === 'function') {
       context.error(`Error updating manipulator collection: ${err.message}`);
     } else {
-      context.error(`Error updating manipulator collection: ${err.message}`);
+      console.error(`Error updating manipulator collection: ${err.message}`);
     }
     throw err;
   }
