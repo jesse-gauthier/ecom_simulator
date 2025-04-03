@@ -12,8 +12,8 @@ export default async ({ req, res, context }) => {
 
   const config = {
     database: {
-      "inGameMarketCollection": process.env.INGAME_STOCK_COLLECTION_ID,
-      "inGameMarketDatabase": process.env.INGAME_STOCK_DATABASE_ID,
+      inGameMarketCollection: process.env.INGAME_STOCK_COLLECTION_ID,
+      inGameMarketDatabase: process.env.INGAME_STOCK_DATABASE_ID,
     }
   }
 
@@ -101,5 +101,4 @@ async function addInGameStocks(inGameStocks, config, client, context) {
   } catch (err) {
     console.error('Error adding in-game stocks:', err.message);
   }
-  return res.json({ message: 'In-game stocks added successfully!' });
 }
