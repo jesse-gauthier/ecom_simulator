@@ -75,7 +75,7 @@ export default async ({ req, res, context }) => {
   try {
     await addInGameStocks(inGameStocks, config, client, context);
   } catch (err) {
-    context.error('Error adding in-game stocks:', err.message);
+    console.error('Error adding in-game stocks:', err.message);
   }
 };
 
@@ -95,7 +95,7 @@ async function addInGameStocks(inGameStocks, config, client, context) {
     }
     context.log('In-game stocks added successfully!');
   } catch (err) {
-    context.error('Error adding in-game stocks:', err.message);
+    console.error('Error adding in-game stocks:', err.message);
   }
   return res.json({ message: 'In-game stocks added successfully!' });
 }
