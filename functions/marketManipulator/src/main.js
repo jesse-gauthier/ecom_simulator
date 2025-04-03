@@ -231,7 +231,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
       if (context && typeof context.log === 'function') {
         context.log(`Manipulator document updated with value: ${manipulatorValue}`);
       } else {
-        console.log(`Manipulator document updated with value: ${manipulatorValue}`);
+        context.log(`Manipulator document updated with value: ${manipulatorValue}`);
       }
     } else {
       // Create new document if none exists
@@ -247,7 +247,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
       if (context && typeof context.log === 'function') {
         context.log(`New manipulator document created with value: ${manipulatorValue}`);
       } else {
-        console.log(`New manipulator document created with value: ${manipulatorValue}`);
+        context.log(`New manipulator document created with value: ${manipulatorValue}`);
       }
     }
     
@@ -256,7 +256,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
     if (context && typeof context.error === 'function') {
       context.error(`Error updating manipulator collection: ${err.message}`);
     } else {
-      console.error(`Error updating manipulator collection: ${err.message}`);
+      context.error(`Error updating manipulator collection: ${err.message}`);
     }
     throw err; 
   }
