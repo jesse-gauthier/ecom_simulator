@@ -25,10 +25,10 @@ export default async ({ req, res, context }) => {
       .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
       .setKey(req.headers['x-appwrite-key'] ?? '');
-    
+
     // Initialize the database with the configured client
     const databases = new Databases(client);
-   
+
     const config = {
       setup: {
         "databaseId": process.env.APPWRITE_FUNCTION_DATABASE_ID,
@@ -39,26 +39,53 @@ export default async ({ req, res, context }) => {
     };
 
     // Step 1: Fetch the real world stock market database
-    const realWorldStockMarket = await fetchRealWorldStockMarket(databases, config.setup, context);
-    
-    if (!realWorldStockMarket.length) {
-      throw new Error("No stock market data available");
+    try {
+      const realWorldStockMarket = await fetchRealWorldStockMarket(databases, config.setup, context);
+      if (!realWorldStockMarket.length) {
+        throw new Error("No stock market data available");
+      }
+    } catch (error) {
+      context.error(`Error fetching real world stock market data: ${error.message}`);
+      return res.json({
+        success: false,
+        error: `Error fetching real world stock market data: ${error.message}`
+      }, 500);
     }
 
+
     // Step 2: Calculate the average change directly from real world data
-    const average = calculateAverageChange(realWorldStockMarket, context);
+
+    try {
+      const average = calculateAverageChange(realWorldStockMarket, context);
+    } catch (error) {
+      context.error(`Error calculating average change: ${error.message}`);
+      return res.json({
+        success: false,
+        error: `Error calculating average change: ${error.message}`
+      }, 500);
+    }
 
     // Step 3: Configure the in-game market manipulation
-    const marketManipulator = calculateMarketManipulator(average);
-    
+    try {
+      const marketManipulator = calculateMarketManipulator(average);
+    } catch (error) {
+      context.error(`Error calculating market manipulator: ${error.message}`);
+      return res.json({
+        success: false,
+        error: `Error calculating market manipulator: ${error.message}`
+      }, 500);
+    }
     // Step 4: Update the manipulator collection
-    await updateManipulatorCollection(databases, config.setup, marketManipulator, context);
-    
-    // Return success response
-    return res.json({
-      success: true,
-      marketManipulator: marketManipulator
-    });
+    try {
+      await updateManipulatorCollection(databases, config.setup, marketManipulator, context);
+    } catch (error) {
+      context.error(`Error updating manipulator collection: ${error.message}`);
+      return res.json({
+        success: false,
+        error: `Error updating manipulator collection: ${error.message}`
+      }, 500);
+    }
+
   } catch (error) {
     // Check if context exists before calling error method
     if (context && typeof context.error === 'function') {
@@ -66,7 +93,7 @@ export default async ({ req, res, context }) => {
     } else {
       console.error(`Market manipulation process failed: ${error.message}`);
     }
-    
+
     return res.json({
       success: false,
       error: error.message
@@ -85,15 +112,15 @@ function calculateMarketManipulator(averageChange) {
   // Minimum manipulator value to reflect that markets always change
   const minManipulator = 0.1;
   let manipulator = 0;
-  
+
   // Convert averageChange to absolute value
   const absChange = Math.abs(averageChange);
-  
+
   // Set thresholds for different levels of market change
   const normalThreshold = 2;  // 2% is considered normal
   const highThreshold = 5;    // 5% is considered significant
   const extremeThreshold = 10; // 10% is considered extreme
-  
+
   // Calculate the market manipulation percentage with reduced scaling
   if (absChange <= normalThreshold) {
     // Within normal range - scale from minimum to 1.5%
@@ -108,7 +135,7 @@ function calculateMarketManipulator(averageChange) {
     // Above extreme threshold - capped at 5%
     manipulator = 5;
   }
-  
+
   return manipulator;
 }
 
@@ -149,7 +176,7 @@ async function fetchRealWorldStockMarket(databases, config, context) {
 function calculateAverageChange(symbols, context) {
   let totalChange = 0;
   let validSymbols = 0;
-  
+
   for (const symbol of symbols) {
     // Validate the data - checking for the correct field names in the ETF data
     if (symbol && typeof symbol.price === 'string' && typeof symbol.change_percentage === 'string') {
@@ -158,7 +185,7 @@ function calculateAverageChange(symbols, context) {
         const price = parseFloat(symbol.price);
         // Extract numeric value from percentage string (e.g., "-1.9929%" → -1.9929)
         const changePercentage = parseFloat(symbol.change_percentage.replace('%', ''));
-        
+
         if (!isNaN(price) && !isNaN(changePercentage)) {
           totalChange += changePercentage;
           validSymbols++;
@@ -180,7 +207,7 @@ function calculateAverageChange(symbols, context) {
       }
     }
   }
-  
+
   if (validSymbols === 0) {
     if (context && typeof context.error === 'function') {
       context.error("No valid symbols found for calculation");
@@ -189,7 +216,7 @@ function calculateAverageChange(symbols, context) {
     }
     return 0;
   }
-  
+
   return totalChange / validSymbols;
 }
 
@@ -209,13 +236,13 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
     const manipulatorValue = Number(marketManipulator.toFixed(2));
     // Get current date and time
     const timestamp = new Date().toISOString();
-    
+
     // Query to check if a document already exists
     const existingDocuments = await databases.listDocuments(
       config.databaseId,
       config.manipulatorCollection
     );
-    
+
     if (existingDocuments.documents.length > 0) {
       // Update existing document
       const docId = existingDocuments.documents[0].$id;
@@ -225,7 +252,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         docId,
         {
           manipulator: manipulatorValue.toString(),
-          UpdateTime: timestamp  
+          UpdateTime: timestamp
         }
       );
       if (context && typeof context.log === 'function') {
@@ -250,7 +277,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         context.log(`New manipulator document created with value: ${manipulatorValue}`);
       }
     }
-    
+
     return true;
   } catch (err) {
     if (context && typeof context.error === 'function') {
@@ -258,6 +285,6 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
     } else {
       context.error(`Error updating manipulator collection: ${err.message}`);
     }
-    throw err; 
+    throw err;
   }
 }
