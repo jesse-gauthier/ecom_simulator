@@ -53,6 +53,9 @@ export default async ({ req, res, context }) => {
     // Step 4: Update the manipulator collection
     await updateManipulatorCollection(databases, config.setup, marketManipulator, context);
 
+    // Log success
+    context.log(`Market manipulation process completed successfully. Manipulator: ${marketManipulator.toFixed(2)}, Average change: ${average.toFixed(2)}`);
+
     // Return success response
     return res.json({
       success: true,
@@ -61,12 +64,8 @@ export default async ({ req, res, context }) => {
     }, 200);
 
   } catch (error) {
-    // Check if context exists before calling error method
-    if (context && typeof context.error === 'function') {
-      context.error(`Market manipulation process failed: ${error.message}`);
-    } else {
-      console.error(`Market manipulation process failed: ${error.message}`);
-    }
+    // Always use context.error
+    context.error(`Market manipulation process failed: ${error.message}`);
 
     return res.json({
       success: false,
@@ -128,13 +127,10 @@ async function fetchRealWorldStockMarket(databases, config, context) {
       config.databaseId,
       config.realWorldCollection
     );
+    context.log(`Successfully fetched ${response.documents.length} stock market records`);
     return response.documents;
   } catch (err) {
-    if (context && typeof context.error === 'function') {
-      context.error(`Error fetching real world stock market database: ${err}`);
-    } else {
-      console.error(`Error fetching real world stock market database: ${err}`);
-    }
+    context.error(`Error fetching real world stock market database: ${err}`);
     throw err; // Re-throw to be caught by main try-catch
   }
 }
@@ -167,31 +163,21 @@ function calculateAverageChange(symbols, context) {
           throw new Error("Invalid numeric conversion");
         }
       } catch (err) {
-        if (context && typeof context.warn === 'function') {
-          context.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
-        } else {
-          console.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
-        }
+        context.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
       }
     } else {
-      if (context && typeof context.warn === 'function') {
-        context.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
-      } else {
-        console.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
-      }
+      context.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
     }
   }
 
   if (validSymbols === 0) {
-    if (context && typeof context.error === 'function') {
-      context.error("No valid symbols found for calculation");
-    } else {
-      console.error("No valid symbols found for calculation");
-    }
+    context.error("No valid symbols found for calculation");
     throw new Error("No valid symbols found for calculation");
   }
 
-  return totalChange / validSymbols;
+  const average = totalChange / validSymbols;
+  context.log(`Calculated average change: ${average.toFixed(2)}% from ${validSymbols} valid symbols`);
+  return average;
 }
 
 /**
@@ -229,11 +215,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
           UpdateTime: timestamp
         }
       );
-      if (context && typeof context.log === 'function') {
-        context.log(`Manipulator document updated with value: ${manipulatorValue}`);
-      } else {
-        console.log(`Manipulator document updated with value: ${manipulatorValue}`);
-      }
+      context.log(`Manipulator document updated with value: ${manipulatorValue}`);
     } else {
       // Create new document if none exists
       await databases.createDocument(
@@ -242,23 +224,15 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
         'unique()',
         {
           manipulator: manipulatorValue.toString(),
-          UpdateTime: timestamp  // Changed from last_updated to match documentation
+          UpdateTime: timestamp
         }
       );
-      if (context && typeof context.log === 'function') {
-        context.log(`New manipulator document created with value: ${manipulatorValue}`);
-      } else {
-        console.log(`New manipulator document created with value: ${manipulatorValue}`);
-      }
+      context.log(`New manipulator document created with value: ${manipulatorValue}`);
     }
 
     return true;
   } catch (err) {
-    if (context && typeof context.error === 'function') {
-      context.error(`Error updating manipulator collection: ${err.message}`);
-    } else {
-      console.error(`Error updating manipulator collection: ${err.message}`);
-    }
+    context.error(`Error updating manipulator collection: ${err.message}`);
     throw err;
   }
 }
