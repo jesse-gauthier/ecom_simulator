@@ -73,7 +73,7 @@ export default async ({ req, res, context }) => {
   try {
     await addInGameStocks(inGameStocks, config, client, context);
   } catch (err) {
-    context.log('Error adding in-game stocks:', err.message);
+    console.log('Error adding in-game stocks:', err.message);
   }
 
   // TODO: Make this return meaningful data, like the stocks that were added or something similar
@@ -93,10 +93,10 @@ async function addInGameStocks(inGameStocks, config, client, context) {
   try {
     for (const stock of inGameStocks) {
       await databases.createDocument(databaseId, collectionId, ID.unique(), stock);
-      context.log('stock added:', stock);
+      console.log('stock added:', stock);
     }
-    context.log('In-game stocks added successfully!');
+    console.log('In-game stocks added successfully!');
   } catch (err) {
-    context.log('Error adding in-game stocks:', err.message);
+    console.log('Error adding in-game stocks:', err.message);
   }
 }
