@@ -1,6 +1,6 @@
 import pkg from 'node-appwrite';
 
-const { Client, Databases, ID } = pkg;
+const { Client, Databases } = pkg;
 
 export default async ({ req, res, context }) => {
   const client = new Client()
@@ -15,10 +15,15 @@ export default async ({ req, res, context }) => {
     }
   }
 
-  // Step 1 - Fetch Stocks
-  const inGameStocks = await fetchStocks(config, client, context)
 
-  console.log(inGameStocks)
+
+  try {
+    // Step 1 - Fetch Stocks
+    const inGameStocks = await fetchStocks(config, client, context)
+    console.log(inGameStocks)
+  } catch (err) {
+    context.log(`Error fetching stocks: ${err}`)
+  }
 
 
   // TODO: Make this return meaningful data, like the stocks that were added or something similar
