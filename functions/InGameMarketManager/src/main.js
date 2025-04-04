@@ -18,6 +18,8 @@ export default async ({ req, res, context }) => {
   // Step 1 - Fetch Stocks
   const inGameStocks = await fetchStocks(config, client, context)
 
+  console.log(inGameStocks)
+
 
   // TODO: Make this return meaningful data, like the stocks that were added or something similar
   // For now, we'll just return an empty response
@@ -38,7 +40,7 @@ async function fetchStocks(config, client) {
   );
 
   promise.then(function (response) {
-    context.log(response);
+    return response
   }, function (error) {
     context.log(error);
   });
