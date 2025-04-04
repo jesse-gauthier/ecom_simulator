@@ -13,47 +13,55 @@ export default async ({ req, res, context }) => {
       inGameMarketCollection: process.env.INGAME_STOCK_COLLECTION,
       inGameMarketDatabase: process.env.INGAME_STOCK_DATABASE_ID,
     }
-  }
-
-
+  };
 
   try {
     // Step 1 - Fetch Stocks
-    const inGameStocks = await fetchStocks(config, client, context)
-    console.log(inGameStocks)
+    const inGameStocks = await fetchStocks(config, client, context);
+    console.log(inGameStocks);
+
+    // TODO: Make this return meaningful data, like the stocks that were added or something similar
+    return res.json({
+      success: true,
+      stocks: inGameStocks
+    });
   } catch (err) {
-    context.log(`Error fetching stocks: ${err}`)
+    context.log(`Error fetching stocks: ${err}`);
+    return res.json({
+      success: false,
+      error: err.message
+    }, 500);
   }
-
-
-  // TODO: Make this return meaningful data, like the stocks that were added or something similar
-  // For now, we'll just return an empty response
-  return res.json({
-
-  });
 };
 
-
 // Function that fetches stocks
-async function fetchStocks(config, client) {
-  const databases = new Databases(client);
-  const inGameStocks = {}
+async function fetchStocks(config, client, context) {
+  try {
+    const databases = new Databases(client);
 
-  let promise = databases.listDocuments(
-    config.inGameMarketDatabase,
-    config.inGameMarketCollection,
-  );
+    const response = await databases.listDocuments(
+      config.database.inGameMarketDatabase,
+      config.database.inGameMarketCollection
+    );
 
-  promise.then(function (response) {
-    return response
-  }, function (error) {
-    context.log(error);
-  });
-
+    return response.documents;
+  } catch (error) {
+    context.log(`Database error: ${error}`);
+    throw error; // Re-throw to be caught by the main try/catch
+  }
 }
 
+// Function placeholder for future implementation
+// async function fetchDailyManipulator() {
+//   // TODO: Implement
+// }
 
-// Function that fetches dailymanipulator
-// Function that loops through each fetched stock and applies the dailymanipulator
-// Function that updates each stock in the database collection.
-// Function to handle errors
+// Function placeholder for applying manipulator to stocks
+// async function applyManipulatorToStocks(stocks, manipulator) {
+//   // TODO: Implement
+// }
+
+// Function placeholder for updating stocks
+// async function updateStocks(updatedStocks) {
+//   // TODO: Implement
+// }
