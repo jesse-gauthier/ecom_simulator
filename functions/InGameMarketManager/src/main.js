@@ -66,15 +66,23 @@ async function fetchDailyManipulator(config, client, context) {
       config.database.inGameMarketDatabase,
       config.database.dailyManipulatorCollection
     );
-    return response.documents.manipulator;
+
+    if (response.documents && response.documents.length > 0) {
+      return response.documents[0].manipulator;
+    }
+
+    // Return a default value if no documents found
+    context.log('No manipulator documents found, using default value 0');
+    return 0;
   } catch (error) {
     context.log(`Database error: ${error}`);
     throw error;
   }
 }
 
-function applyManipulatorToStocks(stocks, manipulator) {
+function applyManipulatorToStocks(stocks, manipulator, context) {
   if (!Array.isArray(stocks) || typeof manipulator !== 'number') {
+    context.log(`Invalid input: stocks=${typeof stocks}, manipulator=${typeof manipulator}`);
     throw new Error('Invalid input: stocks must be an array and manipulator must be a number');
   }
 
