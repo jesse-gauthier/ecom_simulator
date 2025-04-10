@@ -21,14 +21,15 @@ export default async ({ req, res, context }) => {
     const inGameStocks = await fetchStocks(config, client, context);
     // Step 2 - fetchDailyManipulator
     const dailyManipulator = await fetchDailyManipulator(config, client, context)
-    console.log(dailyManipulator)
+    // Step 3 - applyManipulatorToStocks
+    const manipulatedStocks = applyManipulatorToStocks(inGameStocks, dailyManipulator, context)
+    // Step 4 - Update stocks in database
+    const updateResults = await updateStocks(manipulatedStocks, config, client, context)
 
-
-
-    // TODO: Make this return meaningful data, like the stocks that were added or something similar
     return res.json({
       success: true,
-      stocks: inGameStocks
+      stocks: manipulatedStocks,
+      updateResults: updateResults
     });
   } catch (err) {
     context.log(`Error fetching stocks: ${err}`);
@@ -56,7 +57,6 @@ async function fetchStocks(config, client, context) {
   }
 }
 
-// Function placeholder for future implementation
 async function fetchDailyManipulator(config, client, context) {
   try {
     const databases = new Databases(client);
@@ -65,19 +65,65 @@ async function fetchDailyManipulator(config, client, context) {
       config.database.inGameMarketDatabase,
       config.database.dailyManipulatorCollection
     );
-    return response.documents;
+    return response.documents.manipulator;
   } catch (error) {
     context.log(`Database error: ${error}`);
-    throw error; // Re-throw to be caught by the main try/catch
+    throw error;
   }
 }
 
-// Function placeholder for applying manipulator to stocks
-// async function applyManipulatorToStocks(stocks, manipulator) {
-//   // TODO: Implement
-// }
+function applyManipulatorToStocks(stocks, manipulator) {
+  if (!Array.isArray(stocks) || typeof manipulator !== 'number') {
+    throw new Error('Invalid input: stocks must be an array and manipulator must be a number');
+  }
 
-// Function placeholder for updating stocks
-// async function updateStocks(updatedStocks) {
-//   // TODO: Implement
-// }
+  return stocks.map(stock => {
+    if (!stock.price || typeof stock.price !== 'number') {
+      return stock; // Skip invalid stocks
+    }
+
+    const changeAmount = (stock.price * (manipulator / 100));
+
+    return {
+      ...stock,
+      price: Number((stock.price + changeAmount).toFixed(2)),
+      last_change: Number(manipulator.toFixed(2))
+    };
+  });
+}
+
+async function updateStocks(updatedStocks, config, client, context) {
+  try {
+    const databases = new Databases(client);
+    const results = [];
+
+    for (const stock of updatedStocks) {
+      try {
+        const response = await databases.updateDocument(
+          config.database.inGameMarketDatabase,
+          config.database.inGameMarketCollection,
+          stock.$id,
+          {
+            price: stock.price.toString(),
+            last_change: stock.last_change.toString()
+          }
+        );
+        results.push({ id: stock.$id, success: true });
+      } catch (stockError) {
+        context?.log(`Failed to update stock ${stock.$id}: ${stockError.message}`);
+        results.push({ id: stock.$id, success: false, error: stockError.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    context?.log(`Updated ${successCount} of ${updatedStocks.length} stocks`);
+
+    return {
+      success: successCount > 0,
+      results: results
+    };
+  } catch (error) {
+    context?.error(`Failed to update stocks: ${error.message}`);
+    throw error;
+  }
+}
