@@ -21,6 +21,7 @@ export default async ({ req, res, context }) => {
     const inGameStocks = await fetchStocks(config, client, context);
     // Step 2 - fetchDailyManipulator
     const dailyManipulator = await fetchDailyManipulator(config, client, context)
+    context.log(`dailyManipulator: ${dailyManipulator}`)
     // Step 3 - applyManipulatorToStocks
     const manipulatedStocks = applyManipulatorToStocks(inGameStocks, dailyManipulator, context)
     // Step 4 - Update stocks in database
