@@ -12,13 +12,18 @@ export default async ({ req, res, context }) => {
     database: {
       inGameMarketCollection: process.env.INGAME_STOCK_COLLECTION,
       inGameMarketDatabase: process.env.INGAME_STOCK_DATABASE_ID,
+      dailyManipulatorCollection: process.env.DAILY_MANIPULATOR_COLLECTION
     }
   };
 
   try {
     // Step 1 - Fetch Stocks
     const inGameStocks = await fetchStocks(config, client, context);
-    console.log(inGameStocks);
+    // Step 2 - fetchDailyManipulator
+    const dailyManipulator = await fetchDailyManipulator(config.database)
+    console.log(dailyManipulator)
+
+
 
     // TODO: Make this return meaningful data, like the stocks that were added or something similar
     return res.json({
@@ -52,9 +57,20 @@ async function fetchStocks(config, client, context) {
 }
 
 // Function placeholder for future implementation
-// async function fetchDailyManipulator() {
-//   // TODO: Implement
-// }
+async function fetchDailyManipulator() {
+  try {
+    const databases = new Databases(client);
+
+    const response = await databases.listDocuments(
+      config.database.inGameMarketDatabase,
+      config.database.dailyManipulatorCollection
+    );
+    return response.documents;
+  } catch (error) {
+    context.log(`Database error: ${error}`);
+    throw error; // Re-throw to be caught by the main try/catch
+  }
+}
 
 // Function placeholder for applying manipulator to stocks
 // async function applyManipulatorToStocks(stocks, manipulator) {
