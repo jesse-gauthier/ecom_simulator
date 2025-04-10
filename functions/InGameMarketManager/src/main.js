@@ -105,7 +105,8 @@ async function updateStocks(updatedStocks, config, client, context) {
           stock.$id,
           {
             price: stock.price.toString(),
-            last_change: stock.last_change.toString()
+            change_amount: stock.last_change.toString(),
+            last_updated: new Date().toISOString()
           }
         );
         results.push({ id: stock.$id, success: true });
