@@ -20,6 +20,13 @@ const { Client, Databases } = pkg;
  * @returns {Promise<void>}
  */
 export default async ({ req, res, context }) => {
+  // Add fallback logging methods if context is undefined
+  const logger = {
+    log: (msg) => context?.log?.(msg) ?? console.log(msg),
+    error: (msg) => context?.error?.(msg) ?? console.error(msg),
+    warn: (msg) => context?.warn?.(msg) ?? console.warn(msg)
+  };
+
   try {
     const client = new Client()
       .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
@@ -39,22 +46,22 @@ export default async ({ req, res, context }) => {
     };
 
     // Step 1: Fetch the real world stock market database
-    const realWorldStockMarket = await fetchRealWorldStockMarket(databases, config.setup, context);
+    const realWorldStockMarket = await fetchRealWorldStockMarket(databases, config.setup, logger);
     if (!realWorldStockMarket.length) {
       throw new Error("No stock market data available");
     }
 
     // Step 2: Calculate the average change directly from real world data
-    const average = calculateAverageChange(realWorldStockMarket, context);
+    const average = calculateAverageChange(realWorldStockMarket, logger);
 
     // Step 3: Configure the in-game market manipulation
-    const marketManipulator = calculateMarketManipulator(average);
+    const marketManipulator = calculateMarketManipulator(average, logger);
 
     // Step 4: Update the manipulator collection
-    await updateManipulatorCollection(databases, config.setup, marketManipulator, context);
+    await updateManipulatorCollection(databases, config.setup, marketManipulator, logger);
 
     // Log success
-    context.log(`Market manipulation process completed successfully. Manipulator: ${marketManipulator.toFixed(2)}, Average change: ${average.toFixed(2)}`);
+    logger.log(`Market manipulation process completed successfully. Manipulator: ${marketManipulator.toFixed(2)}, Average change: ${average.toFixed(2)}`);
 
     // Return success response
     return res.json({
@@ -64,8 +71,8 @@ export default async ({ req, res, context }) => {
     }, 200);
 
   } catch (error) {
-    // Always use context.error
-    context.error(`Market manipulation process failed: ${error.message}`);
+    // Use the logger instead of context directly
+    logger.error(`Market manipulation process failed: ${error.message}`);
 
     return res.json({
       success: false,
@@ -81,12 +88,13 @@ export default async ({ req, res, context }) => {
  * @param {number} averageChange - The average market change percentage
  * @returns {number} - The calculated market manipulator value (0.1-5%)
  */
-function calculateMarketManipulator(averageChange) {
+function calculateMarketManipulator(averageChange, logger) {
   // Minimum manipulator value to reflect that markets always change
   const minManipulator = 0.1;
   let manipulator = 0;
 
-  // Convert averageChange to absolute value
+  // Store the sign before converting to absolute value
+  const sign = Math.sign(averageChange);
   const absChange = Math.abs(averageChange);
 
   // Set thresholds for different levels of market change
@@ -96,20 +104,17 @@ function calculateMarketManipulator(averageChange) {
 
   // Calculate the market manipulation percentage with reduced scaling
   if (absChange <= normalThreshold) {
-    // Within normal range - scale from minimum to 1.5%
     manipulator = minManipulator + ((absChange / normalThreshold) * (1.5 - minManipulator));
   } else if (absChange <= highThreshold) {
-    // Above normal but below high threshold - scale from 1.5% to 3%
     manipulator = 1.5 + ((absChange - normalThreshold) / (highThreshold - normalThreshold)) * 1.5;
   } else if (absChange <= extremeThreshold) {
-    // Between high and extreme threshold - scale from 3% to 5%
     manipulator = 3 + ((absChange - highThreshold) / (extremeThreshold - highThreshold)) * 2;
   } else {
-    // Above extreme threshold - capped at 5%
     manipulator = 5;
   }
 
-  return manipulator;
+  // Apply the original sign to the manipulator value
+  return manipulator * sign;
 }
 
 /**
@@ -118,19 +123,19 @@ function calculateMarketManipulator(averageChange) {
  * 
  * @param {Object} databases - The Appwrite Databases instance
  * @param {Object} config - Configuration object containing database and collection IDs
- * @param {Object} context - Function context with logging methods
+ * @param {Object} logger - Logger object with logging methods
  * @returns {Promise<Array>} - Array of stock market symbols with their data
  */
-async function fetchRealWorldStockMarket(databases, config, context) {
+async function fetchRealWorldStockMarket(databases, config, logger) {
   try {
     const response = await databases.listDocuments(
       config.databaseId,
       config.realWorldCollection
     );
-    context.log(`Successfully fetched ${response.documents.length} stock market records`);
+    logger.log(`Successfully fetched ${response.documents.length} stock market records`);
     return response.documents;
   } catch (err) {
-    context.error(`Error fetching real world stock market database: ${err}`);
+    logger.error(`Error fetching real world stock market database: ${err}`);
     throw err; // Re-throw to be caught by main try-catch
   }
 }
@@ -140,10 +145,10 @@ async function fetchRealWorldStockMarket(databases, config, context) {
  * Validates data before processing and extracts price changes in a single pass.
  * 
  * @param {Array<Object>} symbols - Array of stock symbol objects
- * @param {Object} context - Function context with logging methods
+ * @param {Object} logger - Logger object with logging methods
  * @returns {number} - The average change across all valid symbols
  */
-function calculateAverageChange(symbols, context) {
+function calculateAverageChange(symbols, logger) {
   let totalChange = 0;
   let validSymbols = 0;
 
@@ -163,20 +168,20 @@ function calculateAverageChange(symbols, context) {
           throw new Error("Invalid numeric conversion");
         }
       } catch (err) {
-        context.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
+        logger.warn(`Error processing symbol data: ${JSON.stringify(symbol)}`);
       }
     } else {
-      context.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
+      logger.warn(`Skipping invalid symbol data: ${JSON.stringify(symbol)}`);
     }
   }
 
   if (validSymbols === 0) {
-    context.error("No valid symbols found for calculation");
+    logger.error("No valid symbols found for calculation");
     throw new Error("No valid symbols found for calculation");
   }
 
   const average = totalChange / validSymbols;
-  context.log(`Calculated average change: ${average.toFixed(2)}% from ${validSymbols} valid symbols`);
+  logger.log(`Calculated average change: ${average.toFixed(2)}% from ${validSymbols} valid symbols`);
   return average;
 }
 
@@ -187,10 +192,10 @@ function calculateAverageChange(symbols, context) {
  * @param {Object} databases - The Appwrite Databases instance
  * @param {Object} config - Configuration object containing database and collection IDs
  * @param {number} marketManipulator - The calculated market manipulator value
- * @param {Object} context - Function context with logging methods
+ * @param {Object} logger - Logger object with logging methods
  * @returns {Promise<boolean>} - True if the update was successful, false otherwise
  */
-async function updateManipulatorCollection(databases, config, marketManipulator, context) {
+async function updateManipulatorCollection(databases, config, marketManipulator, logger) {
   try {
     // Format the manipulator as a number with 2 decimal precision
     const manipulatorValue = Number(marketManipulator.toFixed(2));
@@ -215,7 +220,7 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
           UpdateTime: timestamp
         }
       );
-      context.log(`Manipulator document updated with value: ${manipulatorValue}`);
+      logger.log(`Manipulator document updated with value: ${manipulatorValue}`);
     } else {
       // Create new document if none exists
       await databases.createDocument(
@@ -227,12 +232,12 @@ async function updateManipulatorCollection(databases, config, marketManipulator,
           UpdateTime: timestamp
         }
       );
-      context.log(`New manipulator document created with value: ${manipulatorValue}`);
+      logger.log(`New manipulator document created with value: ${manipulatorValue}`);
     }
 
     return true;
   } catch (err) {
-    context.error(`Error updating manipulator collection: ${err.message}`);
+    logger.error(`Error updating manipulator collection: ${err.message}`);
     throw err;
   }
 }
