@@ -20,7 +20,7 @@ export default async ({ req, res, context }) => {
     // Step 1 - Fetch Stocks
     const inGameStocks = await fetchStocks(config, client, context);
     // Step 2 - fetchDailyManipulator
-    const dailyManipulator = await fetchDailyManipulator(config.database)
+    const dailyManipulator = await fetchDailyManipulator(config, client, context)
     console.log(dailyManipulator)
 
 
@@ -57,7 +57,7 @@ async function fetchStocks(config, client, context) {
 }
 
 // Function placeholder for future implementation
-async function fetchDailyManipulator() {
+async function fetchDailyManipulator(config, client, context) {
   try {
     const databases = new Databases(client);
 
