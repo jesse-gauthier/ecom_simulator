@@ -21,7 +21,7 @@ export default async ({ req, res, context }) => {
     const inGameStocks = await fetchStocks(config, client, context);
     // Step 2 - fetchDailyManipulator
     const dailyManipulator = await fetchDailyManipulator(config, client, context)
-    context.log(`dailyManipulator: ${dailyManipulator}`)
+    context?.log(`dailyManipulator: ${dailyManipulator}`)
     // Step 3 - applyManipulatorToStocks
     const manipulatedStocks = applyManipulatorToStocks(inGameStocks, dailyManipulator, context)
     // Step 4 - Update stocks in database
@@ -33,7 +33,7 @@ export default async ({ req, res, context }) => {
       updateResults: updateResults
     });
   } catch (err) {
-    context.log(`Error fetching stocks: ${err}`);
+    context?.log(`Error fetching stocks: ${err}`);
     return res.json({
       success: false,
       error: err.message
@@ -53,7 +53,7 @@ async function fetchStocks(config, client, context) {
 
     return response.documents;
   } catch (error) {
-    context.log(`Database error: ${error}`);
+    context?.log(`Database error: ${error}`);
     throw error; // Re-throw to be caught by the main try/catch
   }
 }
@@ -72,17 +72,17 @@ async function fetchDailyManipulator(config, client, context) {
     }
 
     // Return a default value if no documents found
-    context.log('No manipulator documents found, using default value 0');
+    context?.log('No manipulator documents found, using default value 0');
     return 0;
   } catch (error) {
-    context.log(`Database error: ${error}`);
+    context?.log(`Database error: ${error}`);
     throw error;
   }
 }
 
 function applyManipulatorToStocks(stocks, manipulator, context) {
   if (!Array.isArray(stocks) || typeof manipulator !== 'number') {
-    context.log(`Invalid input: stocks=${typeof stocks}, manipulator=${typeof manipulator}`);
+    context?.log(`Invalid input: stocks=${typeof stocks}, manipulator=${typeof manipulator}`);
     throw new Error('Invalid input: stocks must be an array and manipulator must be a number');
   }
 
@@ -133,7 +133,7 @@ async function updateStocks(updatedStocks, config, client, context) {
       results: results
     };
   } catch (error) {
-    context?.error(`Failed to update stocks: ${error.message}`);
+    context?.error?.(`Failed to update stocks: ${error.message}`);
     throw error;
   }
 }
